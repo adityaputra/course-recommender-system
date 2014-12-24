@@ -13,7 +13,7 @@
                         </h1>
                         <ol class="breadcrumb">
                             <li class="active">
-                                <i class="fa fa-fw fa-check"></i> Content-based Filtering
+                                <i class="fa fa-fw fa-check"></i> Content-based Filtering-
                             </li>
                         </ol>
                     </div>
