@@ -5,6 +5,8 @@ class Recommendation extends CI_Controller {
         function __construct(){
                 parent::__construct();
                 $m_mk = $this->load->model('student/m_mk');
+                $m_mahasiswa = $this->load->model('student/m_mahasiswa');
+                $m_rekomendasi = $this->load->model('student/m_rekomendasi');
         }
         function index()
         {
@@ -55,7 +57,7 @@ class Recommendation extends CI_Controller {
         function ajaxLoadTabelMK(){
         	
         	$html = '';
-        	$html .= '<table class="table table-bordered table-hover table-striped datatable" id="table-MK">';
+        	$html .= '<table class="table table-bordered table-hover table-striped datatable" id="table">';
             $html .= '<thead>';
 			$html .= '<tr>';
 			$html .= '<th>Kode MK</th>';
@@ -93,6 +95,28 @@ class Recommendation extends CI_Controller {
 			
 			echo $html;
 //         	print_r($data);exit;
+        }
+        
+        function getCbRekomendasi(){
+        	// param{
+        	// in: nim
+	        // }
+	        //
+	       	// get mhs info: fakultas-prodi
+	       	$student = $this->getMhsInfo();
+        	
+        	// get MK yang bisa ditempuh mhs join khs, menampilkan semua mata kuliah yang bisa diambil beserta data apakah mk tersebut ditempuh
+        	$mk_khs = $this->m_rekomendasi->getCbMkKhs($student);
+        	
+	       	// pembentukan matriks
+
+	       	// pembentukan rules
+        	
+        	
+        }
+        
+        function getMhsInfo(){
+        	return ($this->session->userdata('student_detail')) ;
         }
 }
 ?>

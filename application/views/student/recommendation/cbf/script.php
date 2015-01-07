@@ -31,7 +31,8 @@
 			function init()
 			{
 				
-				loadTabelMK();
+// 				loadTabelMK();
+				getRekomendasi();
 			}
 		
 			function loadTabelMK(){
@@ -47,16 +48,16 @@
 					data 	: theParams,
 					success : function(rv) {				
 						try {				
-							$('#div-table-MK').html(rv);
-							$('#table-MK').dataTable();
-							$('#progress-table-MK').hide();
+							$('#div-table').html(rv);
+							$('#table').dataTable();
+							$('#progress-table').hide();
 						} catch (err) {	
-							$('#progress-table-MK').hide();
+							$('#progress-table').hide();
 							alert(err.message);				
 						}									   				
 					},
 					error : function(x, t, m) {
-						$('#progress-table-MK').hide();
+						$('#progress-table').hide();
 						if (t === "timeout") {
 							alert(this.TheMsgErr);
 						} else {
@@ -65,5 +66,39 @@
 					}
 				});
 			}
+
+			function getRekomendasi(){
+				$('#progress-table-MK').show();
+				var theUrl = 'getCbRekomendasi/';
+				
+				var theParams = "";
+				
+				$.ajax({
+					type 	: "POST",
+					timeout : this.TheTimeout,
+					url		: theUrl,
+					data 	: theParams,
+					success : function(rv) {				
+						try {				
+							$('#div-table').html(rv);
+							$('#table').dataTable();
+							$('#progress-table').hide();
+						} catch (err) {	
+							$('#progress-table').hide();
+							alert(err.message);				
+						}									   				
+					},
+					error : function(x, t, m) {
+						$('#progress-table').hide();
+						if (t === "timeout") {
+							alert(this.TheMsgErr);
+						} else {
+							alert(t);
+						}
+					}
+				});
+			}
+
+			
 			
 			</script>
