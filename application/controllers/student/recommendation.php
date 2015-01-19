@@ -107,17 +107,21 @@ class Recommendation extends CI_Controller {
         	
         	// get MK yang bisa ditempuh, baik yang pernah diambil maupun belum.
         	// mhs join khs, menampilkan semua mata kuliah yang bisa diambil beserta data apakah mk tersebut ditempuh
-        	$mkKhs = $this->getCbMkKhs($student);
+//         	$mkKhs = $this->getCbMkKhs($student);
 //         	print_r($mkKhs);exit;
 //         	echo ($this->getGenericTable($mkKhs, 'table-mk-khs', 'Tabel Matriks MK - KHS'));
 
         	// filter untuk hanya mengambil MK yang sudah ditempuh
-        	$mkKhs = $this->getCbFilterMkTempuh($mkKhs, 1);
+//         	$mkKhs = $this->getCbFilterMkTempuh($mkKhs, 1);
         	
+        	// -----------------------------------------------------------------------------
         	
 	       	// pembentukan matriks
 	       	$mkKhsKomp = $this->getCbMkKhsKomp($student);
-// 	       	print_r($mkKhsKomp);exit;
+	       	$mkKhsKompTempuh = $this->getCbFilterMkTempuh($mkKhsKomp, 1);
+// 	       	print_r($mkKhsKomp);
+// 	       	print_r($mkKhsKompTempuh);
+// 	       	exit;
 	       	
 	       	//membentuk decision tree
 	       	$decisionTree = $this->getCbDecisionTree($mkKhsKomp);
@@ -125,6 +129,13 @@ class Recommendation extends CI_Controller {
 	       	
 	       	// pembentukan rules
 	       	$rules = $this->getCbRules($decisionTree);
+			
+			//simplifying rules with entropies and information gaining
+	       	$entropyS = $this->getCbEntropy($rules, 'ALL');
+	       	//ini untuk perhitungan entropi pada sample dan kolom tertentu, dilakukan filtering sample
+// 	       	$sample = $this->getCbSampleColumnFilter($rules, 'U4', 1);
+// 			$entropyS = $this->getCbEntropy($sample);
+			print_r($entropyS);
         	
         	
         }
@@ -153,7 +164,8 @@ class Recommendation extends CI_Controller {
         			}
         		}  
         	}
-        	print_r($data);exit;
+//         	print_r($mkKhs);exit;
+//         	print_r($data);exit;
         	return $data;
         }
         
@@ -178,17 +190,15 @@ class Recommendation extends CI_Controller {
         		$temp['U5'] = $val['U5'];
         		$temp['U6'] = $val['U6'];
         		$temp['U7'] = $val['U7'];
-        		$temp['K_NILAI'] = $val['K_NILAI'];
+				$temp['IS_TEMPUH'] = $val['IS_TEMPUH'];
         		array_push($tree1, $temp);
         		
-//         		$tree2[$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] = $val['K_NILAI'];
-        		$tree2[$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] = 0;
-//         		array_push($tree2[$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']], 1);
-        		
+				$tree2[$val['IS_TEMPUH']][$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] = 0;
+				
         	}
         	
         	foreach ($data as $key => $val){
-        		$tree2[$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] = $tree2[$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] + 1;
+        		$tree2[$val['IS_TEMPUH']][$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] = $tree2[$val['IS_TEMPUH']][$val['U1']][$val['U2']][$val['U3']][$val['U4']][$val['U5']][$val['U6']][$val['U7']] + 1;
         	}
         	
         	return $tree2;
@@ -209,23 +219,26 @@ class Recommendation extends CI_Controller {
 
 			$denormalizedRules = array();
 			
-			foreach ($rules as $key => $val){
-				foreach ($val as $key2 => $val2){
-					foreach ($val2 as $key3 => $val3){
-						foreach ($val3 as $key4 => $val4){
-							foreach ($val4 as $key5 => $val5){
-								foreach ($val5 as $key6 => $val6){
-									foreach ($val6 as $key7 => $val7){
-										$tempArr["U1"] = $key;
-										$tempArr["U2"] = $key2;
-										$tempArr["U3"] = $key3;
-										$tempArr["U4"] = $key4;
-										$tempArr["U5"] = $key5;
-										$tempArr["U6"] = $key6;
-										$tempArr["U7"] = $key7;
-										$tempArr["COUNT"] = $val7;
-										
-										array_push($denormalizedRules, $tempArr);
+			foreach ($rules as $keynil => $nil){
+				foreach ($nil as $key => $val){
+					foreach ($val as $key2 => $val2){
+						foreach ($val2 as $key3 => $val3){
+							foreach ($val3 as $key4 => $val4){
+								foreach ($val4 as $key5 => $val5){
+									foreach ($val5 as $key6 => $val6){
+										foreach ($val6 as $key7 => $val7){
+											$tempArr["IS_TEMPUH"] = $keynil;
+											$tempArr["U1"] = $key;
+											$tempArr["U2"] = $key2;
+											$tempArr["U3"] = $key3;
+											$tempArr["U4"] = $key4;
+											$tempArr["U5"] = $key5;
+											$tempArr["U6"] = $key6;
+											$tempArr["U7"] = $key7;
+											$tempArr["COUNT"] = $val7;
+											
+											array_push($denormalizedRules, $tempArr);
+										}
 									}
 								}
 							}
@@ -234,9 +247,51 @@ class Recommendation extends CI_Controller {
 				}
 			}
 			
-			print_r($denormalizedRules); exit;
+			return ($denormalizedRules);
         }
         
+		function getCbEntropy($sample){
+			// rumus: entropy(s) = sigma(i,c) (-((peluang i).(log2 peluang i)))
+// 			print_r($sample);exit;
+
+			$entropyS = 0;
+			
+			$uniqueRules = count($sample); 
+
+
+			$countS = 0;
+			$countTarget0 = 0;
+			$countTarget1 = 0;
+			
+			// menghitung total rules
+			foreach ($sample as $key => $value){
+				$countS = $countS + $value['COUNT'];
+				if($value['IS_TEMPUH'] == 0) $countTarget0 = $countTarget0 + $value['COUNT'];
+				if($value['IS_TEMPUH'] == 1) $countTarget1 = $countTarget1 + $value['COUNT'];
+			}
+// 			echo $countS."-".$countTarget0."-".$countTarget1;exit;			
+			
+			//menghitung entropi
+// 			$countS = 11;
+// 			$countTarget0 = 3;
+// 			$countTarget1 = 8;
+			$entropyS = - (($countTarget0 / $countS) * log(($countTarget0 / $countS), 2)) - (($countTarget1 / $countS) * log(($countTarget1 / $countS), 2));
+			return $entropyS; exit;
+			
+			
+		}
+		
+		function getCbSampleColumnFilter($sample, $targetColumn, $targetValue){
+			
+			$filteredSample = array();
+			foreach ($sample as $key => $value){
+				if($value[$targetColumn] == $targetValue){
+					array_push($filteredSample, $value);
+				}
+			}
+			return $filteredSample;
+		}
+		
         function getGenericTable($data, $id, $title){
         	$html = '';
         	$html .= '<hr/><h4>'.$title.'</h4><br/>';

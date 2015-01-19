@@ -49,6 +49,7 @@ class M_Rekomendasi extends CI_Model {
 				 KOMP.U5,
 				 KOMP.U6,
 				 KOMP.U7,
+				 MK.IS_TEMPUH,
 				 MK.K_NILAI,
 				 MK.K_JURUSAN AS MK_K_JURUSAN,
 				 MK.K_FAKULTAS AS MK_K_FAKULTAS,
@@ -60,7 +61,8 @@ class M_Rekomendasi extends CI_Model {
 				FROM 
 					(
 						SELECT TBL_KHS.NIM, TBL_MK.K_MK, TBL_MK.THN_MK, TBL_MK.K_JURUSAN, TBL_MK.K_FAKULTAS, TBL_MK.K_JENJANG,
-							(coalesce(case TBL_KHS.M_NILAI_K_NILAI when NULL then 0 ELSE TBL_KHS.M_NILAI_K_NILAI end,"0")) as K_NILAI 
+							(coalesce(case TBL_KHS.M_NILAI_K_NILAI when TBL_KHS.M_NILAI_K_NILAI then 1 ELSE 0 end,"-")) as IS_TEMPUH,
+							(coalesce(case TBL_KHS.M_NILAI_K_NILAI when TBL_KHS.M_NILAI_K_NILAI then TBL_KHS.M_NILAI_K_NILAI ELSE 0 end,"-")) as K_NILAI
 						FROM 
 							(
 								SELECT * FROM MATA_KULIAH 
