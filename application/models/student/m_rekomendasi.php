@@ -106,6 +106,53 @@ class M_Rekomendasi extends CI_Model {
 		return $result->result_array();
 	}
 	
+	//======================================================================================================================================
+	//===================COLLABORATIVE FILTERING============================================================================================
+	//======================================================================================================================================
+	
+	function getIcfMkKhsProdi($params){
+		$statement = '
+				SELECT
+					MHS_MK.NIM,
+					MHS_MK.NAMA_MHS,
+					MHS_MK.ANGKATAN, 
+					MHS_MK.K_PROG_STUDI, 
+					MHS_MK.K_JURUSAN, 
+					MHS_MK.K_FAKULTAS,
+					MHS_MK.K_JENJANG, 
+					MHS_MK.K_MK, 
+					MHS_MK.THN_MK, 
+					MHS_MK.NAMA_MK,
+					KHS.M_NILAI_K_NILAI,
+					(coalesce(case KHS.M_NILAI_K_NILAI when KHS.M_NILAI_K_NILAI then 1 ELSE 0 end,"-")) as IS_TEMPUH
+				FROM
+				(
+				SELECT
+					MHS.NIM, MHS.NAMA AS NAMA_MHS, MHS.ANGKATAN, MHS.K_PROG_STUDI, MHS.K_JURUSAN, MHS.K_FAKULTAS,
+					MHS.K_JENJANG, MK.K_MK, MK.THN_MK, MK.NAMA AS NAMA_MK
+				FROM MHS, MATA_KULIAH MK
+					WHERE MHS.K_JURUSAN = "'.$params['K_JURUSAN'].'"
+					AND MHS.K_FAKULTAS = "'.$params['K_FAKULTAS'].'"
+					AND MHS.K_JENJANG = "'.$params['K_JENJANG'].'"
+					AND MK.K_JURUSAN = "'.$params['K_JURUSAN'].'"
+					AND MK.K_FAKULTAS = "'.$params['K_FAKULTAS'].'"
+					AND MK.K_JENJANG = "'.$params['K_JENJANG'].'"
+				) AS MHS_MK
+				LEFT JOIN
+				(
+				SELECT * FROM MHS_KHS
+				) AS KHS
+				ON MHS_MK.NIM = KHS.NIM
+				AND MHS_MK.K_MK = KHS.K_MK
+				AND MHS_MK.THN_MK = KHS.THN_MK
+				LIMIT 0,500
+				;
+				';
+		$statement = 'SELECT * FROM tmp_CF_TRAINING_041501_all -- WHERE ANGKATAN="2012"';
+// 		echo $statement;exit;
+		$result = $this->db->query($statement);
+		return $result->result_array();
+	}
 	
 	
 }

@@ -38,15 +38,15 @@ class Recommendation extends CI_Controller {
         	}        	
         }
         
-        function cf(){
+        function icf(){
         	$log = $this->checkLogin();
         	 
         	if($log == true){
         		$this->load->view('student/general/header');
         		$this->load->view('student/general/sidebar');
-        		$this->load->view('student/recommendation/cf/body');
+        		$this->load->view('student/recommendation/icf/body');
         		$this->load->view('student/general/script');
-        		$this->load->view('student/recommendation/cf/script');
+        		$this->load->view('student/recommendation/icf/script');
         		$this->load->view('student/general/footer');
         	}
         	else {
@@ -97,6 +97,10 @@ class Recommendation extends CI_Controller {
 //         	print_r($data);exit;
         }
         
+        //======================================================================================================================================
+        //===================CONTENT BASED FILTERING==========================================================================================
+        //======================================================================================================================================        
+        
         function getCbRekomendasi(){
         	// param{
         	// in: nim
@@ -119,23 +123,25 @@ class Recommendation extends CI_Controller {
 	       	// pembentukan matriks
 	       	$mkKhsKomp = $this->getCbMkKhsKomp($student);
 	       	$mkKhsKompTempuh = $this->getCbFilterMkTempuh($mkKhsKomp, 1);
-// 	       	print_r($mkKhsKomp);
+// 	       	echo "mhskomp".count($mkKhsKomp)."<br/>"; print_r($mkKhsKomp);exit;
 // 	       	print_r($mkKhsKompTempuh);
 // 	       	exit;
 	       	
 	       	//membentuk decision tree
 	       	$decisionTree = $this->getCbDecisionTree($mkKhsKomp);
+// 	       	echo "decisionTree".count($decisionTree)."<br/>"; print_r($decisionTree);exit;
 // 	       	echo ($this->getGenericTable($mkKhsKomp, 'table-mk-khs-komp', 'Tabel Matriks MK - KHS - KOMPETENSI'));
 	       	
 	       	// pembentukan rules
 	       	$rules = $this->getCbRules($decisionTree);
-			
+// 	       	echo "rules".count($rules)."<br/>"; print_r($rules);exit;
+	       	
 			//simplifying rules with entropies and information gaining
 	       	$entropyS = $this->getCbEntropy($rules, 'ALL');
 	       	//ini untuk perhitungan entropi pada sample dan kolom tertentu, dilakukan filtering sample
 // 	       	$sample = $this->getCbSampleColumnFilter($rules, 'U4', 1);
 // 			$entropyS = $this->getCbEntropy($sample);
-			print_r($entropyS);
+			echo "entropyS".count($entropyS)."<br/>"; print_r($entropyS); exit;
         	
         	
         }
@@ -276,7 +282,7 @@ class Recommendation extends CI_Controller {
 // 			$countTarget0 = 3;
 // 			$countTarget1 = 8;
 			$entropyS = - (($countTarget0 / $countS) * log(($countTarget0 / $countS), 2)) - (($countTarget1 / $countS) * log(($countTarget1 / $countS), 2));
-			return $entropyS; exit;
+			return $entropyS; 
 			
 			
 		}
@@ -291,6 +297,73 @@ class Recommendation extends CI_Controller {
 			}
 			return $filteredSample;
 		}
+
+		
+		//======================================================================================================================================
+		//===================COLLABORATIVE FILTERING============================================================================================		
+		//======================================================================================================================================		
+		function getIcfRekomendasi(){
+			// param{
+			// in: nim
+			// }
+			//
+			// get mhs info: fakultas-prodi
+			$student = $this->getMhsInfo();
+			
+			//tabel relasi mhs-mk-tempuh
+			$mkKhsProdi = $this->getIcfMkKhsProdi($student);
+// 			print_r($mkKhsProdi);exit;
+			
+			//transformasi array menjadi dua dimensi
+			$deviasi = array();
+			foreach ($mkKhsProdi as $key => $value){
+// 				$tmp = array();
+				$deviasi[$value['NIM']][$value['K_MK']][$value['THN_MK']]['IS_TEMPUH'] = $value['IS_TEMPUH'];
+				
+			}
+			
+// 			print_r($deviasi);exit;
+			
+			$arrSumCountAvg = array();
+			
+			foreach ($deviasi as $key=>$value){
+				$sumRating = 0;
+				$countRating = 0;
+				foreach ($value as $key2 => $value2){
+					foreach ($value2 as $key3 => $value3){
+						$sumRating = $sumRating + $value3['IS_TEMPUH'];
+						$countRating++;
+					}
+				}
+				$arrSumCountAvg[$key]['SUMRATING'] = $sumRating;
+				$arrSumCountAvg[$key]['COUNTRATING'] = $countRating;
+				$arrSumCountAvg[$key]['AVGRATING'] = $sumRating / $countRating;
+			}
+// 			print_r($arrSumCountAvg);exit;
+
+			foreach ($deviasi as $key=>$value){
+				$sumRating = 0;
+				$countRating = 0;
+				foreach ($value as $key2 => $value2){
+					foreach ($value2 as $key3 => $value3){
+						$deviasi[$key][$key2][$key3]['AVGRATING'] = $arrSumCountAvg[$key]['AVGRATING'];
+						$deviasi[$key][$key2][$key3]['DEVIASI'] = $value3['IS_TEMPUH'] - $arrSumCountAvg[$key]['AVGRATING'];
+					}
+				}
+			}
+			
+			print_r($deviasi);exit;
+			
+		}
+		
+		function getIcfMkKhsProdi($student){
+			return $this->m_rekomendasi->getIcfMkKhsProdi($student);
+		}
+		
+		
+		//======================================================================================================================================
+		//===================GENERAL============================================================================================================		
+		//======================================================================================================================================
 		
         function getGenericTable($data, $id, $title){
         	$html = '';
