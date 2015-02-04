@@ -13,7 +13,7 @@
                         </h1>
                         <ol class="breadcrumb">
                             <li class="active">
-                                <i class="fa fa-fw fa-check"></i> Collaborative Filtering
+                                <i class="fa fa-fw fa-check"></i> Item Based Collaborative Filtering
                             </li>
                         </ol>
                     </div>

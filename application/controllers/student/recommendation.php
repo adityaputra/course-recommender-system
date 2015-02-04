@@ -55,6 +55,22 @@ class Recommendation extends CI_Controller {
         	}
         }
         
+        function ucf(){
+        	$log = $this->checkLogin();
+        
+        	if($log == true){
+        		$this->load->view('student/general/header');
+        		$this->load->view('student/general/sidebar');
+        		$this->load->view('student/recommendation/ucf/body');
+        		$this->load->view('student/general/script');
+        		$this->load->view('student/recommendation/ucf/script');
+        		$this->load->view('student/general/footer');
+        	}
+        	else {
+        		redirect('student/log');
+        	}
+        }
+        
         function ajaxLoadTabelMK(){
         	
         	$html = '';
@@ -301,7 +317,7 @@ class Recommendation extends CI_Controller {
 
 		
 		//======================================================================================================================================
-		//===================COLLABORATIVE FILTERING============================================================================================		
+		//========ITEM BASED COLLABORATIVE FILTERING============================================================================================		
 		//======================================================================================================================================		
 		function getIcfRekomendasi(){
 			// param{

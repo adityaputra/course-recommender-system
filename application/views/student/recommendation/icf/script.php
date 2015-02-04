@@ -83,6 +83,7 @@
 							$('#div-table').html(rv);
 							$('#table').dataTable();
 							$('#progress-table').hide();
+							$('.datatable').dataTable();
 						} catch (err) {	
 							$('#progress-table').hide();
 							alert(err.message);				
