@@ -14,6 +14,26 @@ class M_MK extends CI_Model {
 		return $result->result_array();
 	}
 	
+	function getMKAvailable($params){
+		$statement = 'SELECT * FROM MATA_KULIAH
+			WHERE K_JURUSAN = "'.$params['K_JURUSAN'].'"
+			AND K_FAKULTAS = "'.$params['K_FAKULTAS'].'"
+			AND K_JENJANG = "'.$params['K_JENJANG'].'";';
+		$result = $this->db->query($statement);
+		return $result->result_array();
+	}
+	
+	function getMKTawar($params){
+		$statement = 'SELECT * FROM MATA_KULIAH 
+			WHERE (K_MK, THN_MK) NOT IN 
+				(SELECT K_MK, THN_MK FROM MHS_KHS WHERE NIM = "'.$params['NIM'].'")
+			AND K_JURUSAN = "'.$params['K_JURUSAN'].'"
+			AND K_FAKULTAS = "'.$params['K_FAKULTAS'].'"
+			AND K_JENJANG = "'.$params['K_JENJANG'].'";';
+		$result = $this->db->query($statement);
+		return $result->result_array();
+	}
+	
 	function getMKKompetensi($param){
 		if($param == 'x' || $param == 'X'){
 			$statement = "SELECT K_MK, THN_MK, K_PROG_STUDI, K_JURUSAN, K_FAKULTAS, K_JENJANG,

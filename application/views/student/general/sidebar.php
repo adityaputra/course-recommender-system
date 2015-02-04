@@ -19,8 +19,11 @@
                             <li <?php $path = 'index.php/student/recommendation/cbf'; if('http://'.$_SERVER['SERVER_NAME'].$_SERVER['PHP_SELF'] == base_url().$path) { echo 'class="active"';}?>>
 		                        <a href="<?php echo base_url().$path;?>"><i class="fa fa-fw fa-check"></i> Content-based</a>
 		                    </li>
-                            <li <?php $path = 'index.php/student/recommendation/cf'; if('http://'.$_SERVER['SERVER_NAME'].$_SERVER['PHP_SELF'] == base_url().$path) { echo 'class="active"';}?>>
-		                        <a href="<?php echo base_url().$path;?>"><i class="fa fa-fw fa-check"></i> Collaborative</a>
+                            <li <?php $path = 'index.php/student/recommendation/icf'; if('http://'.$_SERVER['SERVER_NAME'].$_SERVER['PHP_SELF'] == base_url().$path) { echo 'class="active"';}?>>
+		                        <a href="<?php echo base_url().$path;?>"><i class="fa fa-fw fa-check"></i> Item-based Collaborative Filtering</a>
+		                    </li>
+                            <li <?php $path = 'index.php/student/recommendation/ucf'; if('http://'.$_SERVER['SERVER_NAME'].$_SERVER['PHP_SELF'] == base_url().$path) { echo 'class="active"';}?>>
+		                        <a href="<?php echo base_url().$path;?>"><i class="fa fa-fw fa-check"></i> User-based Collaborative Filtering</a>
 		                    </li>
                         </ul>
                     </li>

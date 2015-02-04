@@ -110,7 +110,7 @@ class M_Rekomendasi extends CI_Model {
 	//===================COLLABORATIVE FILTERING============================================================================================
 	//======================================================================================================================================
 	
-	function getIcfMkKhsProdi($params){
+	function getIcfMkKhsTempuh($params){
 		$statement = '
 				SELECT
 					MHS_MK.NIM,

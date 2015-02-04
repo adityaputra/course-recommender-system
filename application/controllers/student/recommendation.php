@@ -5,6 +5,7 @@ class Recommendation extends CI_Controller {
         function __construct(){
                 parent::__construct();
                 $m_mk = $this->load->model('student/m_mk');
+                $m_khs = $this->load->model('student/m_khs');
                 $m_mahasiswa = $this->load->model('student/m_mahasiswa');
                 $m_rekomendasi = $this->load->model('student/m_rekomendasi');
         }
@@ -310,22 +311,116 @@ class Recommendation extends CI_Controller {
 			// get mhs info: fakultas-prodi
 			$student = $this->getMhsInfo();
 			
+			
 			//tabel relasi mhs-mk-tempuh
-			$mkKhsProdi = $this->getIcfMkKhsProdi($student);
-// 			print_r($mkKhsProdi);exit;
+			$mkKhsTempuh = $this->getIcfMkKhsTempuh($student);
+// 			print_r($mkKhsTempuh);exit;
 			
+			/* 
+			//-----------------------------------
 			//transformasi array menjadi dua dimensi
-			$deviasi = array();
-			foreach ($mkKhsProdi as $key => $value){
-// 				$tmp = array();
-				$deviasi[$value['NIM']][$value['K_MK']][$value['THN_MK']]['IS_TEMPUH'] = $value['IS_TEMPUH'];
-				
-			}
-			
+			$mkKhsTempuhTrans = $this->getIcfTransformMkKhsTempuh($mkKhsTempuh);
 // 			print_r($deviasi);exit;
 			
-			$arrSumCountAvg = array();
+			// generating array of deviation (tabel 3.6)			
+			$deviasi = $this->getIcfTabelDeviasi($mkKhsTempuhTrans);
+// 			print_r($deviasi);exit;
 			
+			$enc = json_encode($deviasi);
+			//----------------------------------
+			 */
+			
+			//file read & write path
+			$dirDev = FCPATH."public/files/rec/icf/deviasi/";
+			$filenameDevArr = $student['K_JURUSAN'].$student['K_FAKULTAS'].$student['K_JENJANG']."-arr.dat";
+			$filenameDevJson = $student['K_JURUSAN'].$student['K_FAKULTAS'].$student['K_JENJANG']."-json.dat";
+			
+			//write to file, uncomment this to generate new deviation files
+// 			$writeDevArr = file_put_contents($dirDev.$filenameDevArr, serialize($deviasi));
+// 			$writeDevJson = file_put_contents($dirDev.$filenameDevJson, $enc);
+// 			echo $writeDevArr."-".$writeDevJson;exit;
+
+			// get file data deviasi yang sudah di generate dari file
+			$deviasiArr = unserialize(file_get_contents($dirDev.$filenameDevArr));
+// 			print_r($deviasiArr); exit;
+			
+// 			$deviasiJson = json_decode(file_get_contents($dirDev.$filenameDevJson), true);
+// 			print_r($deviasiJson);
+
+			$deviasiCrossArr = $this->getIcfTabelDeviasiCrossed($deviasiArr);
+// 			print_r($deviasiCrossArr);exit;
+
+			$dirDevCross = FCPATH."public/files/rec/icf/deviasi-cross/";
+			$filenameDevCrossArr = $student['K_JURUSAN'].$student['K_FAKULTAS'].$student['K_JENJANG']."-arr.dat";
+			
+			//write to file, uncomment this to generate new deviation files
+// 			$writeDevCrossArr = file_put_contents($dirDevCross.$filenameDevCrossArr, serialize($deviasiCrossArr));
+// 			echo $writeDevCrossArr;exit;
+
+			$devCrossArr = unserialize(file_get_contents($dirDevCross.$filenameDevCrossArr));
+// 			print_r($deviasiCrossArr);exit;
+
+			//get array of user average rating
+// 			$userAverageRating = $this->getIcfUserAverageRating($deviasiArr);
+// 			print_r($userAverageRating); exit;
+
+			//get available course
+			$courses = $this->m_mk->getMKAvailable($student);
+// 			print_r($courses); exit;
+
+			//get array of similarity
+			$similarityArr = $this->getIcfSimilarityTable($devCrossArr, $courses);
+// 			print_r($similarityArr); exit;
+
+			//simulasi perhitungan similarity antar dua item
+// 			$similarityEx = $this->getIcfSimilarity(array('IFK15001', '0'), array('IFK15003', '0'), $devCrossArr);
+// 			echo $similarityEx;
+
+			//get mata kuliah yang belum ditempuh
+			$coursesTawar = $this->m_mk->getMKTawar($student);
+// 			print_r($coursesTawar);
+
+			//get khs matakuliah student
+			$coursesKhs = $this->m_khs->getAllKhs($student);
+// 			print_r($coursesKhs); exit;
+
+			//get average item rating
+			$avgItemsRating = $this->getIcfAvgItemsRating($mkKhsTempuh);
+// 			print_r($avgItemsRating); exit;
+			
+			//menghitung prediksi
+			$predictionTableWei = $this->getIcfPredictionTable($coursesTawar, $coursesKhs, $similarityArr, $avgItemsRating, 'weightedsum');
+			$predictionTableHer = $this->getIcfPredictionTable($coursesTawar, $coursesKhs, $similarityArr, $avgItemsRating, 'herlocker');
+// 			print_r($predictionTable);
+			
+			//simulasi perhitungan prediksi penempuhan matakuliah oleh mahasiswa
+			
+			//representasi prediksi dalam tabel
+			$html = $this->getIcfPredictionTableHtml($predictionTableWei, "Tabel Prediksi ICF - Weighted Sum", "tabel-prediksi-icf-wei");
+			echo $html;
+			$html = $this->getIcfPredictionTableHtml($predictionTableHer, "Tabel Prediksi ICF - Herlocker", "tabel-prediksi-icf-her");
+			echo $html;
+			
+			exit;
+			
+		}
+		
+		function getIcfMkKhsTempuh($student){
+			return $this->m_rekomendasi->getIcfMkKhsTempuh($student);
+		}
+		
+		function getIcfTransformMkKhsTempuh($mkKhsTempuh){
+			$deviasi = array();
+			foreach ($mkKhsTempuh as $key => $value){
+				// 				$tmp = array();
+				$deviasi[$value['NIM']][$value['K_MK']][$value['THN_MK']]['IS_TEMPUH'] = $value['IS_TEMPUH'];
+			}
+			return $deviasi;
+		}
+		
+		function getIcfTabelDeviasi($deviasi){
+// 			print_r($deviasi); exit;
+			$arrSumCountAvg = array();
 			foreach ($deviasi as $key=>$value){
 				$sumRating = 0;
 				$countRating = 0;
@@ -339,8 +434,8 @@ class Recommendation extends CI_Controller {
 				$arrSumCountAvg[$key]['COUNTRATING'] = $countRating;
 				$arrSumCountAvg[$key]['AVGRATING'] = $sumRating / $countRating;
 			}
-// 			print_r($arrSumCountAvg);exit;
-
+			// 			print_r($arrSumCountAvg);exit;
+			
 			foreach ($deviasi as $key=>$value){
 				$sumRating = 0;
 				$countRating = 0;
@@ -351,15 +446,286 @@ class Recommendation extends CI_Controller {
 					}
 				}
 			}
-			
-			print_r($deviasi);exit;
-			
+			return $deviasi;
 		}
 		
-		function getIcfMkKhsProdi($student){
-			return $this->m_rekomendasi->getIcfMkKhsProdi($student);
+		function getIcfTabelDeviasiCrossed($deviasiArr){
+// 			print_r($deviasiArr);exit;
+			$deviasiCrossArr = array();
+			foreach ($deviasiArr as $key => $value){
+				foreach ($value as $key2 => $value2){
+					foreach ($value2 as $key3 => $value3){
+// 						$deviasiCrossArr[$key2][$key3][$key] = $value3['DEVIASI'];
+						$deviasiCrossArr[$key][$key2][$key3] = $value3['DEVIASI'];
+					}
+				}
+			}
+			return $deviasiCrossArr;
 		}
 		
+		function getIcfUserAverageRating($arr){
+// 			print_r($arr); exit;
+
+			$userAverageRating = array();
+			foreach ($arr as $key => $value){
+				foreach ($value as $key2 => $value2){
+					foreach ($value2 as $key3 => $value3){
+						$userAverageRating[$key] = $value3['AVGRATING'];
+						break;
+					}
+					break;
+				}
+			}
+			return $userAverageRating;
+		}
+		
+		function getIcfSimilarityTable($arr, $course){
+			$similarity = array();
+			foreach ($course as $key => $value){
+				foreach ($course as $key2 => $value2){
+					if($key2 < $key){
+						continue;
+					}
+// 					$similarity[$key][$key2] = $this->getIcfSimilarity(
+					$similarity[$value['K_MK']."-".$value['THN_MK']][$value2['K_MK']."-".$value2['THN_MK']]
+						= $this->getIcfSimilarity(
+							array($value['K_MK'], $value['THN_MK']), 
+							array($value2['K_MK'], $value2['THN_MK']), 
+							$arr
+						);
+// 					echo $key . ", " . $key2. " = " . $similarity[$key][$key2] . "<br/>";
+				}
+			}
+// 			print_r($similarity); exit;
+			return $similarity;
+		}
+		
+		function getIcfSimilarity($item1, $item2, $arr){
+// 			print_r($arr); exit;
+			$sum1 = 0;
+			$sum2 = 0;
+			$sum3 = 0;
+			$sum4 = 0;
+			
+			$i = 0;
+			foreach ($arr as $key => $value){
+				$sum1 = $sum1 + ($value[$item1[0]][$item1[1]] * $value[$item2[0]][$item2[1]]);
+				$sum2 = $sum2 + (($value[$item1[0]][$item1[1]]) * ($value[$item1[0]][$item1[1]]));
+				$sum3 = $sum3 + (($value[$item2[0]][$item2[1]]) * ($value[$item2[0]][$item2[1]]));
+				$i++;
+				if($i==2){
+// 					$sim = ($sum1) / (sqrt($sum2) * sqrt($sum3));
+// 					echo $sum1." / "."( sqrt".($sum2) ." * sqrt". ($sum3)." ) = ". $sim. "<br/>"; exit;
+					break;
+				}
+				
+			}
+			$sim = ($sum1) / (sqrt($sum2) * sqrt($sum3));
+// 			echo $sum1." / "."( sqrt".($sum2) ." * sqrt". ($sum3)." ) = ". $sim. "<br/>"; exit;
+			return $sim;
+		}
+		
+		function  getIcfPredictionTable($coursesTawar, $coursesKhs, $similarityTable, $avgItemsRating, $type){
+// 			print_r($similarityTable); exit;
+			
+			$predictionTable = array();
+			foreach ($coursesTawar as $key => $value){
+				if($type == 'weightedsum') $pred = $this->getIcfPredictionWeightedSum($value, $coursesKhs, $similarityTable);
+				else if($type == 'herlocker') $pred = $this->getIcfPredictionHerlocker($value, $coursesKhs, $similarityTable, $avgItemsRating);
+// 				echo $pred; exit;
+				$predictionTable[$value['K_MK']][$value['THN_MK']]['PRED'] = $pred;
+			}
+// 			print_r($predictionTable); exit;
+			return $predictionTable;
+		}
+		
+		function getIcfPredictionWeightedSum($mkTawar, $courseKhs, $similarityTable){
+// 			print_r($similarityTable); exit;
+
+// 			$mkTawar['K_MK'] = 'IFK15011';
+			$sum1 = 0;
+			$sum2 = 0;
+			foreach ($courseKhs as $key => $value){
+// 				foreach ($similarityTable as $key2 => $value2){
+// 					if ($similarityTable)
+					// weighted sum = sigma(Sin * Run), Run = 1
+					
+					if($mkTawar['K_MK']."-".$value['THN_MK'] == $value['K_MK']."-".$value['THN_MK']) continue;
+
+					if (isset($similarityTable[$mkTawar['K_MK']."-".$value['THN_MK']][$value['K_MK']."-".$value['THN_MK']])){
+						if($similarityTable
+								[$mkTawar['K_MK']."-".$value['THN_MK']]
+								[$value['K_MK']."-".$value['THN_MK']] >= 0){
+							
+							$sum1 = $sum1 +
+								($similarityTable
+									[$mkTawar['K_MK']."-".$value['THN_MK']]
+									[$value['K_MK']."-".$value['THN_MK']]
+									* 1);
+							$sum2 = $sum2 +
+							abs($similarityTable
+									[$mkTawar['K_MK']."-".$value['THN_MK']]
+									[$value['K_MK']."-".$value['THN_MK']]);
+// 													echo $mkTawar['K_MK']."-".$value['THN_MK'] . " --- " . $value['K_MK']."-".$value['THN_MK']
+// 														." = (".
+// 														$similarityTable
+// 														[$mkTawar['K_MK']."-".$value['THN_MK']]
+// 														[$value['K_MK']."-".$value['THN_MK']]
+// 														. ")<br/>";
+// 													echo $sum1."<br/>";
+						}
+						
+						
+					}
+					else if (isset($similarityTable[$value['K_MK']."-".$value['THN_MK']][$mkTawar['K_MK']."-".$value['THN_MK']])){
+						if($similarityTable
+								[$value['K_MK']."-".$value['THN_MK']]
+								[$mkTawar['K_MK']."-".$value['THN_MK']] >= 0){
+							
+							$sum1 = $sum1 +
+								($similarityTable
+									[$value['K_MK']."-".$value['THN_MK']]
+									[$mkTawar['K_MK']."-".$value['THN_MK']]
+									* 1);
+							$sum2 = $sum2 +
+								abs($similarityTable
+									[$value['K_MK']."-".$value['THN_MK']]
+									[$mkTawar['K_MK']."-".$value['THN_MK']]);
+// 							echo $value['K_MK']."-".$value['THN_MK'] . " --- " . $mkTawar['K_MK']."-".$value['THN_MK']
+// 							." = (".
+// 							$similarityTable
+// 							[$value['K_MK']."-".$value['THN_MK']]
+// 							[$mkTawar['K_MK']."-".$value['THN_MK']]
+// 							. ")<br/>";
+// 							echo $sum1."<br/>";
+						}
+						
+					}
+// 				}
+			}
+			$pred = $sum1 / $sum2;
+// 			echo $sum1 . " / " . $sum2 . " = " . $pred; exit;
+			return $pred;
+		}
+		
+		function getIcfPredictionHerlocker($mkTawar, $courseKhs, $similarityTable, $avgItemsRating){
+// 						print_r($similarityTable); exit;
+		
+			// 			$mkTawar['K_MK'] = 'IFK15011';
+			$sum1 = 0;
+			$sum2 = 0;
+			foreach ($courseKhs as $key => $value){
+				// 				foreach ($similarityTable as $key2 => $value2){
+				// 					if ($similarityTable)
+				// weighted sum = sigma(Sin * (Run - avg(Rn))), Run = 1
+					
+				if($mkTawar['K_MK']."-".$value['THN_MK'] == $value['K_MK']."-".$value['THN_MK']) continue;
+		
+				if (isset($similarityTable[$mkTawar['K_MK']."-".$value['THN_MK']][$value['K_MK']."-".$value['THN_MK']])){
+					if($similarityTable
+							[$mkTawar['K_MK']."-".$value['THN_MK']]
+							[$value['K_MK']."-".$value['THN_MK']] >= 0){
+							
+						$sum1 = $sum1 +
+						($similarityTable
+								[$mkTawar['K_MK']."-".$value['THN_MK']]
+								[$value['K_MK']."-".$value['THN_MK']]
+								* (1 - ($avgItemsRating[$value['K_MK']][$value['THN_MK']]['AVG'])));
+						$sum2 = $sum2 +
+						abs($similarityTable
+								[$mkTawar['K_MK']."-".$value['THN_MK']]
+								[$value['K_MK']."-".$value['THN_MK']]);
+// 													echo $mkTawar['K_MK']."-".$value['THN_MK'] . " --- " . $value['K_MK']."-".$value['THN_MK']
+// 														." = (".
+// 														$similarityTable
+// 														[$mkTawar['K_MK']."-".$value['THN_MK']]
+// 														[$value['K_MK']."-".$value['THN_MK']]
+// 														. " - ". $avgItemsRating[$value['K_MK']][$value['THN_MK']]['AVG'] .")<br/>";
+// 													echo $sum1."<br/>";
+					}
+		
+		
+				}
+				else if (isset($similarityTable[$value['K_MK']."-".$value['THN_MK']][$mkTawar['K_MK']."-".$value['THN_MK']])){
+					if($similarityTable
+							[$value['K_MK']."-".$value['THN_MK']]
+							[$mkTawar['K_MK']."-".$value['THN_MK']] >= 0){
+							
+						$sum1 = $sum1 +
+						($similarityTable
+								[$value['K_MK']."-".$value['THN_MK']]
+								[$mkTawar['K_MK']."-".$value['THN_MK']]
+								* (1 - ($avgItemsRating[$value['K_MK']][$value['THN_MK']]['AVG'])));
+						$sum2 = $sum2 +
+						abs($similarityTable
+								[$value['K_MK']."-".$value['THN_MK']]
+								[$mkTawar['K_MK']."-".$value['THN_MK']]);
+// 													echo $value['K_MK']."-".$value['THN_MK'] . " --- " . $mkTawar['K_MK']."-".$value['THN_MK']
+// 													." = (".
+// 													$similarityTable
+// 													[$value['K_MK']."-".$value['THN_MK']]
+// 													[$mkTawar['K_MK']."-".$value['THN_MK']]
+// 													. " - ". $avgItemsRating[$value['K_MK']][$value['THN_MK']]['AVG'] .")<br/>";
+// 													echo $sum1."<br/>";
+					}
+		
+				}
+				// 				}
+			}
+// 			exit;
+			$pred = $avgItemsRating[$mkTawar['K_MK']][$mkTawar['THN_MK']]['AVG'] +($sum1 / $sum2);
+			// 			echo $sum1 . " / " . $sum2 . " = " . $pred; exit;
+			return $pred;
+		}
+		
+		function getIcfAvgItemsRating($mkKhsTempuh){
+			$avgRating = array();
+			foreach ($mkKhsTempuh as $key => $value){
+				if(!isset($avgRating[$value['K_MK']][$value['THN_MK']]['SUM'])){ $avgRating[$value['K_MK']][$value['THN_MK']]['SUM'] = 0;}
+				if(!isset($avgRating[$value['K_MK']][$value['THN_MK']]['COUNT'])){ $avgRating[$value['K_MK']][$value['THN_MK']]['COUNT'] = 0;}
+				if(!isset($avgRating[$value['K_MK']][$value['THN_MK']]['AVG'])){ $avgRating[$value['K_MK']][$value['THN_MK']]['AVG'] = 0;}
+				$avgRating[$value['K_MK']][$value['THN_MK']]['SUM'] = $avgRating[$value['K_MK']][$value['THN_MK']]['SUM'] + $value['IS_TEMPUH'];
+				$avgRating[$value['K_MK']][$value['THN_MK']]['COUNT'] = $avgRating[$value['K_MK']][$value['THN_MK']]['COUNT'] + 1;
+				$avgRating[$value['K_MK']][$value['THN_MK']]['AVG'] = $avgRating[$value['K_MK']][$value['THN_MK']]['SUM'] / $avgRating[$value['K_MK']][$value['THN_MK']]['COUNT'];
+			}
+// 			print_r($avgRating);exit;
+			return $avgRating;
+		}
+		
+		function getIcfPredictionTableHtml($data, $title, $id){
+        	$html = '';
+        	$html .= '<hr/><h4>'.$title.'</h4><br/>';
+        	$html .= '<table class="table table-bordered table-hover table-striped datatable" id="'.$id.'">';
+        	$html .= '<thead>';
+        	$html .= '<tr>';
+        	$html .= '<td>NO</td>';
+        	$html .= '<td>K_MK</td>';
+        	$html .= '<td>THN_MK</td>';
+        	$html .= '<td>PREDIKSI</td>';
+        	$html .= '<td>ACTIONS</td>';
+        	$html .= '</tr>';
+        	$html .= '</thead>';
+        	
+        	$i = 0;
+        	foreach ($data as $key => $val){
+        		foreach ($val as $key2 => $val2){
+        			$i++;
+        			$html .= '<tr>';
+        			$html .= '<td>'.$i.'</td>';
+        			$html .= '<td>'.$key.'</td>';
+        			$html .= '<td>'.$key2.'</td>';
+        			$html .= '<td>'.$val2['PRED'].'</td>';
+        			$html .= '<td>'.'</td>';
+        			$html .= '</tr>';
+        		}
+        		
+        	}
+        		
+        	$html .= '</tbody>';
+        	$html .= '</table>';
+//         	echo $html; exit;
+        	return $html;
+        }
 		
 		//======================================================================================================================================
 		//===================GENERAL============================================================================================================		
